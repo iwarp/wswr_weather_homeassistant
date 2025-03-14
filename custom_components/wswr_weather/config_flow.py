@@ -21,12 +21,6 @@ class WeatherStationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=DATA_SCHEMA,
             errors={},
-            description=(
-                "Please configure the WSWR Weather Station integration by providing the following details:\n\n"
-                "- **API URL:** Enter the URL of your weather data endpoint. "
-                "The default value points to the most recent weather data.\n"
-                "- **Interval:** Set the frequency (in minutes) at which the data should be fetched."
-            ),
             description_placeholders={
                 "api_url_help": "Your API endpoint URL",
                 "interval_help": "Update frequency in minutes",
