@@ -1,3 +1,5 @@
+"""WSWR.co.nz  Weather Station integration."""
+
 from homeassistant import core
 
 
