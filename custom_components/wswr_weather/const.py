@@ -1,0 +1,1 @@
+DOMAIN = "wswr_weather"

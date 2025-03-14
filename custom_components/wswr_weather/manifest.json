@@ -1,0 +1,11 @@
+{
+  "codeowners": ["@iwarp"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/iwarp/wswr_weather_homeassistant",
+  "domain": "wswr_weather",
+  "iot_class": "local_polling",
+  "name": "WSWR Weather Station",
+  "requirements": [],
+  "version": "1.0.0"
+}
