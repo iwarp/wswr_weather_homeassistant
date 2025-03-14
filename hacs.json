@@ -1,4 +1,6 @@
 {
   "name": "WSWR Weather Station",
-  "render_readme": true
+  "version": "1.0.0",
+  "render_readme": true,
+  "image": "https://raw.githubusercontent.com/iwarp/wswr_weather_homeassistant/refs/heads/main/custom_components/wswr_weather/logo.png"
 }
