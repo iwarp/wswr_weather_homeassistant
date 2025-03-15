@@ -1,41 +1,57 @@
 """WSWR.co.nz  Weather Station integration."""
 
-# import logging
-# from custom_components.wswr_weather.sensor import WeatherStationCoordinator, WeatherStationSensor
+"""GitHub Custom Component."""
+import asyncio
+import logging
 
-# from homeassistant import core
-# from homeassistant.config_entries import ConfigEntry
-# from homeassistant.core import HomeAssistant
-# from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant import config_entries, core
+from homeassistant.const import Platform
 
-# _LOGGER = logging.getLogger(__name__)
+from .const import DOMAIN
 
-# async def async_setup(hass: core.HomeAssistant, config: dict) -> bool:
-#     """Set up the WSWR Weather Station component."""
-#     _LOGGER.info("WSWR Weather Station - async_setup")
+_LOGGER = logging.getLogger(__name__)
 
-#     return True
+PLATFORMS = [Platform.SENSOR]
 
-# async def async_setup_entry(
-#     hass: HomeAssistant, entry: ConfigEntry) -> None:
-#     """Set up Weather Station sensor entities from a config entry."""
-#     _LOGGER.info("WSWR Weather Station - async_setup_entry")
 
-#     # _LOGGER.info("WSWR Weather Station - Creating coordinator")
-#     # coordinator = WeatherStationCoordinator(hass)
+async def async_setup_entry(
+    hass: core.HomeAssistant, entry: config_entries.ConfigEntry
+) -> bool:
+    """Set up platform from a ConfigEntry."""
+    hass.data.setdefault(DOMAIN, {})
+    hass_data = dict(entry.data)
+    # Registers update listener to update config entry when options are updated.
+    unsub_options_update_listener = entry.add_update_listener(options_update_listener)
+    # Store a reference to the unsubscribe function to cleanup if an entry is unloaded.
+    hass_data["unsub_options_update_listener"] = unsub_options_update_listener
+    hass.data[DOMAIN][entry.entry_id] = hass_data
 
-#     # _LOGGER.info("WSWR Weather Station - refresh_data")
-#     # await coordinator.async_config_entry_first_refresh()
+    # Forward the setup to the sensor platform.
+    await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
+    return True
 
-#     # # Create one sensor per key in the latest JSON object.
-#     # sensors = [
-#     #     WeatherStationSensor(coordinator, sensor_key)
-#     #     for sensor_key in coordinator.data.keys()
-#     # ]
 
-#     # _LOGGER.debug("WSWR Weather Station - Creating Sensors", sensors)
+async def options_update_listener(
+    hass: core.HomeAssistant, config_entry: config_entries.ConfigEntry
+):
+    """Handle options update."""
+    await hass.config_entries.async_reload(config_entry.entry_id)
 
-#     # # async_add_entities(sensors, update_before_add=True)
 
-#     return True
+async def async_unload_entry(
+    hass: core.HomeAssistant, entry: config_entries.ConfigEntry
+) -> bool:
+    """Unload a config entry."""
+    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        # Remove config entry from domain.
+        entry_data = hass.data[DOMAIN].pop(entry.entry_id)
+        # Remove options_update_listener.
+        entry_data["unsub_options_update_listener"]()
 
+    return unload_ok
+
+
+async def async_setup(hass: core.HomeAssistant, config: dict) -> bool:
+    """Set up the GitHub Custom component from yaml configuration."""
+    hass.data.setdefault(DOMAIN, {})
+    return True

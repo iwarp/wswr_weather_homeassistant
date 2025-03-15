@@ -19,6 +19,7 @@ from homeassistant.helpers.typing import (
 )
 
 from typing import Any, Callable, Dict, Optional
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN, CONF_API_URL,  CONF_INTERVAL, SENSOR_NAME_MAPPING
 
@@ -30,10 +31,10 @@ async def async_setup_platform(
     hass: HomeAssistantType,
     config: ConfigType,
     async_add_entities: Callable,
-    discovery_info: Optional[DiscoveryInfoType] = None,
+    discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
     """Set up Weather Station sensor entities from a config entry."""
-    _LOGGER.info("WSWR Weather Station - async_setup_entry")
+    _LOGGER.info("WSWR Weather Station - async_setup_platform")
 
     _LOGGER.info("WSWR Weather Station - Creating coordinator")
     coordinator = WeatherStationCoordinator(hass)
@@ -50,27 +51,35 @@ async def async_setup_platform(
     _LOGGER.debug("WSWR Weather Station - Creating Sensors", sensors)
     async_add_entities(sensors, update_before_add=True)
 
-# async def async_setup_entry(
-#     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
-# ) -> None:
-#     """Set up Weather Station sensor entities from a config entry."""
-#     _LOGGER.info("WSWR Weather Station - async_setup_entry")
+async def async_setup_entry(
+    hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
+    """Set up Weather Station sensor entities from a config entry."""
 
-#     _LOGGER.info("WSWR Weather Station - Creating coordinator")
-#     coordinator = WeatherStationCoordinator(hass)
+    """Setup sensors from a config entry created in the integrations UI."""
+    config = hass.data[DOMAIN][config_entry.entry_id]
+    # Update our config to include new repos and remove those that have been removed.
+    if config_entry.options:
+        config.update(config_entry.options)
+    session = async_get_clientsession(hass)
 
-#     _LOGGER.info("WSWR Weather Station - refresh_data")
-#     await coordinator.async_config_entry_first_refresh()
+    _LOGGER.info("WSWR Weather Station - async_setup_entry")
 
-#     # Create one sensor per key in the latest JSON object.
-#     sensors = [
-#         WeatherStationSensor(coordinator, sensor_key)
-#         for sensor_key in coordinator.data.keys()
-#     ]
+    _LOGGER.info("WSWR Weather Station - Creating coordinator")
+    coordinator = WeatherStationCoordinator(hass)
 
-#     _LOGGER.debug("WSWR Weather Station - Creating Sensors", sensors)
+    _LOGGER.info("WSWR Weather Station - refresh_data")
+    await coordinator.async_config_entry_first_refresh()
 
-#     async_add_entities(sensors, update_before_add=True)
+    # Create one sensor per key in the latest JSON object.
+    sensors = [
+        WeatherStationSensor(coordinator, sensor_key)
+        for sensor_key in coordinator.data.keys()
+    ]
+
+    _LOGGER.debug("WSWR Weather Station - Creating Sensors", sensors)
+
+    async_add_entities(sensors, update_before_add=True)
 
 
 class WeatherStationCoordinator(DataUpdateCoordinator):
