@@ -21,7 +21,7 @@ class WeatherStationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=DATA_SCHEMA,
             errors={},
-            description_placeholders={
+            title_placeholders={
                 "api_url_help": "Your API endpoint URL",
                 "interval_help": "Update frequency in minutes",
             }
