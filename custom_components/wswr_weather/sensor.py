@@ -75,7 +75,7 @@ async def async_setup_entry(
     async_add_entities(sensors, update_before_add=True)
 
 
-
+def get_sensor_properties(sensor_key: str):
     """Infer sensor properties based on the sensor key."""
     sensor_key_lower = sensor_key.lower()
     properties = {}
