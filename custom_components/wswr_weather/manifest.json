@@ -1,6 +1,7 @@
 {
   "domain": "wswr_weather",
   "name": "WSWR Weather Station",
+  "codeowners": ["@iwarp"],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/iwarp/wswr_weather_homeassistant",
