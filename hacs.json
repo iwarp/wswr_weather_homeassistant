@@ -1,6 +1,6 @@
 {
   "name": "WSWR Weather Station",
-  "version": "1.0.1",
+  "version": "1.0.5",
   "render_readme": true,
   "domains": ["sensor"],
   "iot_class": "Local Poll"
