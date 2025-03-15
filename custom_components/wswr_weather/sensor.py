@@ -41,6 +41,7 @@ async def async_setup_platform(
     sensors = [
         WeatherStationSensor(coordinator, sensor_key)
         for sensor_key in coordinator.data.keys()
+        if sensor_key not in ("id", "record_time", "power_v_01mnavg", "wvpk2ht_xxmnavg")
     ]
 
     _LOGGER.debug("WSWR Weather Station - Creating Sensors: " + str(len(sensors)))
@@ -66,6 +67,7 @@ async def async_setup_entry(
     sensors = [
         WeatherStationSensor(coordinator, sensor_key)
         for sensor_key in coordinator.data.keys()
+        if sensor_key not in ("id", "record_time", "power_v_01mnavg", "wvpk2ht_xxmnavg")
     ]
 
     _LOGGER.debug("WSWR Weather Station - Creating Sensors: " + str(len(sensors)))
