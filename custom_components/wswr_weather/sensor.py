@@ -18,6 +18,29 @@ from .const import DOMAIN, CONF_API_URL,  CONF_INTERVAL, SENSOR_NAME_MAPPING
 _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(minutes=CONF_INTERVAL)
 
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+) -> None:
+    """Set up Weather Station sensor entities from a config entry."""
+    _LOGGER.info("WSWR Weather Station - async_setup_entry")
+
+    _LOGGER.info("WSWR Weather Station - Creating coordinator")
+    coordinator = WeatherStationCoordinator(hass)
+
+    _LOGGER.info("WSWR Weather Station - refresh_data")
+    await coordinator.async_config_entry_first_refresh()
+
+    # Create one sensor per key in the latest JSON object.
+    sensors = [
+        WeatherStationSensor(coordinator, sensor_key)
+        for sensor_key in coordinator.data.keys()
+    ]
+
+    _LOGGER.debug("WSWR Weather Station - Creating Sensors", sensors)
+
+    async_add_entities(sensors, update_before_add=True)
+
+
 class WeatherStationCoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the Weather Station API."""
 
