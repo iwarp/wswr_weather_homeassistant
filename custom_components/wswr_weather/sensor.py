@@ -58,12 +58,13 @@ class WeatherStationCoordinator(DataUpdateCoordinator):
         """Fetch data from API."""
         try:
             async with async_timeout.timeout(10):
+                _LOGGER.debug("Getting Data from:", CONF_API_URL)
                 async with self.session.get(CONF_API_URL) as response:
                     if response.status != 200:
                         raise UpdateFailed(f"Error fetching data: {response.status}")
                     data = await response.json()
 
-                    _LOGGER.debug("WSWR JSON:", data)
+                    # _LOGGER.debug("WSWR JSON:", data)
                     # If the API returns a list of records, use the first one as the latest.
                     if isinstance(data, list) and data:
                         return data[0]
