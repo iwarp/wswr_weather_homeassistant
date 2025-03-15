@@ -76,8 +76,7 @@ async def async_setup_entry(
 
 
 
-def get_sensor_properties(sensor_key: str):
-    """Infer sensor properties based on sensor key."""
+    """Infer sensor properties based on the sensor key."""
     sensor_key_lower = sensor_key.lower()
     properties = {}
     # Temperature sensors
@@ -85,36 +84,36 @@ def get_sensor_properties(sensor_key: str):
         properties.update({"device_class": "temperature", "unit": "°C"})
     # Pressure sensors (including various pressure measurements)
     elif (
-        sensor_key_lower.startswith("pres") or
-        sensor_key_lower.startswith("pressen") or
-        "presqfe" in sensor_key_lower or
-        "presqnh" in sensor_key_lower or
-        "presmsl" in sensor_key_lower
+        sensor_key_lower.startswith("pres")
+        or sensor_key_lower.startswith("pressen")
+        or "presqfe" in sensor_key_lower
+        or "presqnh" in sensor_key_lower
+        or "presmsl" in sensor_key_lower
     ):
         properties.update({"device_class": "pressure", "unit": "hPa"})
     # Humidity sensors
     elif sensor_key_lower.startswith("relhumd"):
         properties.update({"device_class": "humidity", "unit": "%"})
-    # Rainfall sensors
+    # Rainfall sensors (explicitly in millimeters)
     elif sensor_key_lower.startswith("rainfal"):
-        properties.update({"unit": "mm"})
-    # Wind direction sensors
+        properties.update({"unit": "mm", "state_class": "measurement"})
+    # Wind direction sensors (explicitly in degrees)
     elif sensor_key_lower.startswith("winddir") or "wnddirm" in sensor_key_lower:
         properties.update({"unit": "°"})
     # Wind speed, gust, or lull sensors
     elif (
-        sensor_key_lower.startswith("windspd") or
-        sensor_key_lower.startswith("windgst") or
-        sensor_key_lower.startswith("windlul")
+        sensor_key_lower.startswith("windspd")
+        or sensor_key_lower.startswith("windgst")
+        or sensor_key_lower.startswith("windlul")
     ):
-        properties.update({"unit": "km/h"})
+        properties.update({"unit": "km/h", "state_class": "measurement"})
     # Solar radiation sensors
     elif sensor_key_lower.startswith("solradn"):
         properties.update({"unit": "W/m²"})
     # Voltage sensors
     elif sensor_key_lower.startswith("power_v"):
         properties.update({"device_class": "voltage", "unit": "V"})
-    # Fallback for any sensor that doesn't match above
+    # Fallback: no specific unit/device_class inferred
     return properties
 
 class WeatherStationCoordinator(DataUpdateCoordinator):
