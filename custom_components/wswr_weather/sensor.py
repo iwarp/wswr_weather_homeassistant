@@ -1,6 +1,6 @@
-import asyncio
 import logging
 from datetime import timedelta
+from typing import Callable
 
 import async_timeout
 import aiohttp
@@ -14,21 +14,16 @@ from homeassistant.helpers.update_coordinator import (
 )
 from homeassistant.helpers.typing import (
     ConfigType,
-    DiscoveryInfoType,
-    HomeAssistantType,
+    DiscoveryInfoType
 )
-
-from typing import Any, Callable, Dict, Optional
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN, CONF_API_URL,  CONF_INTERVAL, SENSOR_NAME_MAPPING
 
 _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(minutes=CONF_INTERVAL)
 
-
 async def async_setup_platform(
-    hass: HomeAssistantType,
+    hass: HomeAssistant,
     config: ConfigType,
     async_add_entities: Callable,
     discovery_info: DiscoveryInfoType | None = None,
@@ -48,39 +43,77 @@ async def async_setup_platform(
         for sensor_key in coordinator.data.keys()
     ]
 
-    _LOGGER.debug("WSWR Weather Station - Creating Sensors", sensors)
+    _LOGGER.debug("WSWR Weather Station - Creating Sensors: " + str(len(sensors)))
     async_add_entities(sensors, update_before_add=True)
 
 async def async_setup_entry(
     hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up Weather Station sensor entities from a config entry."""
-
-    """Setup sensors from a config entry created in the integrations UI."""
-    config = hass.data[DOMAIN][config_entry.entry_id]
-    # Update our config to include new repos and remove those that have been removed.
-    if config_entry.options:
-        config.update(config_entry.options)
-    session = async_get_clientsession(hass)
-
+    
     _LOGGER.info("WSWR Weather Station - async_setup_entry")
 
-    _LOGGER.info("WSWR Weather Station - Creating coordinator")
+    config = hass.data[DOMAIN][config_entry.entry_id]
+
+    if config_entry.options:
+        config.update(config_entry.options)
+
     coordinator = WeatherStationCoordinator(hass)
 
-    _LOGGER.info("WSWR Weather Station - refresh_data")
     await coordinator.async_config_entry_first_refresh()
 
-    # Create one sensor per key in the latest JSON object.
+    # Create the sensors
     sensors = [
         WeatherStationSensor(coordinator, sensor_key)
         for sensor_key in coordinator.data.keys()
     ]
 
-    _LOGGER.debug("WSWR Weather Station - Creating Sensors", sensors)
+    _LOGGER.debug("WSWR Weather Station - Creating Sensors: " + str(len(sensors)))
 
     async_add_entities(sensors, update_before_add=True)
 
+
+
+def get_sensor_properties(sensor_key: str):
+    """Infer sensor properties based on sensor key."""
+    sensor_key_lower = sensor_key.lower()
+    properties = {}
+    # Temperature sensors
+    if sensor_key_lower.startswith("airtemp") or sensor_key_lower.startswith("dewtemp"):
+        properties.update({"device_class": "temperature", "unit": "°C"})
+    # Pressure sensors (including various pressure measurements)
+    elif (
+        sensor_key_lower.startswith("pres") or
+        sensor_key_lower.startswith("pressen") or
+        "presqfe" in sensor_key_lower or
+        "presqnh" in sensor_key_lower or
+        "presmsl" in sensor_key_lower
+    ):
+        properties.update({"device_class": "pressure", "unit": "hPa"})
+    # Humidity sensors
+    elif sensor_key_lower.startswith("relhumd"):
+        properties.update({"device_class": "humidity", "unit": "%"})
+    # Rainfall sensors
+    elif sensor_key_lower.startswith("rainfal"):
+        properties.update({"unit": "mm"})
+    # Wind direction sensors
+    elif sensor_key_lower.startswith("winddir") or "wnddirm" in sensor_key_lower:
+        properties.update({"unit": "°"})
+    # Wind speed, gust, or lull sensors
+    elif (
+        sensor_key_lower.startswith("windspd") or
+        sensor_key_lower.startswith("windgst") or
+        sensor_key_lower.startswith("windlul")
+    ):
+        properties.update({"unit": "km/h"})
+    # Solar radiation sensors
+    elif sensor_key_lower.startswith("solradn"):
+        properties.update({"unit": "W/m²"})
+    # Voltage sensors
+    elif sensor_key_lower.startswith("power_v"):
+        properties.update({"device_class": "voltage", "unit": "V"})
+    # Fallback for any sensor that doesn't match above
+    return properties
 
 class WeatherStationCoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the Weather Station API."""
@@ -115,16 +148,26 @@ class WeatherStationCoordinator(DataUpdateCoordinator):
 
 
 class WeatherStationSensor(SensorEntity):
-    """Representation of a sensor for one key from the Weather Station API data."""
+    """Representation of a sensor for each type of Weather Station API data."""
 
     def __init__(self, coordinator: WeatherStationCoordinator, sensor_key: str) -> None:
         """Initialize the sensor."""
         self.coordinator = coordinator
         self._sensor_key = sensor_key
+
         # Use a friendly name if available; otherwise, fall back.
         friendly_name = SENSOR_NAME_MAPPING.get(sensor_key, f"Weather Station {sensor_key}")
+                # Infer sensor properties such as device_class and unit_of_measurement
+        properties = get_sensor_properties(sensor_key)
+
         self._attr_name = friendly_name
-        self._attr_unique_id = f"weather_station_{sensor_key}"
+        # self._attr_unique_id = f"weather_station_{sensor_key}"
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}-{sensor_key}"
+        if "device_class" in properties:
+            self._attr_device_class = properties["device_class"]
+        if "unit" in properties:
+            self._attr_unit_of_measurement = properties["unit"]
+
 
     @property
     def state(self):

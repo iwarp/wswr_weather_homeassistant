@@ -4,8 +4,8 @@ from homeassistant import config_entries
 from .const import CONF_API_URL, DOMAIN, CONF_INTERVAL
 
 DATA_SCHEMA = vol.Schema({
-    vol.Required("api_url", default="https://api.wswr.jkent.tech/weatherdata/mostrecent/60"): str,
-    vol.Required("interval", default=1): int
+    vol.Required("api_url", default=CONF_API_URL): str,
+    vol.Required("interval", default=CONF_INTERVAL): int
 })
 
 class WeatherStationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
