@@ -106,7 +106,7 @@ def get_sensor_properties(sensor_key: str):
         or sensor_key_lower.startswith("windgst")
         or sensor_key_lower.startswith("windlul")
     ):
-        properties.update({"unit": "m/s", "state_class": "measurement"})
+        properties.update({"unit": "kn/s", "state_class": "measurement"})
     # Solar radiation sensors
     elif sensor_key_lower.startswith("solradn"):
         properties.update({"unit": "W/m²"})
