@@ -106,11 +106,11 @@ def get_sensor_properties(sensor_key: str):
              # Assuming string for now as per original code implies simple display.
              return {} 
         if "dir" in sensor_key_lower:
-             return {"device_class": SensorDeviceClass.WIND_DIRECTION, "unit": DEGREE}
+             return {"device_class": "wind_direction", "unit": DEGREE}
 
     # Wind Direction (general)
     if "winddir" in sensor_key_lower or "wnddirm" in sensor_key_lower:
-        return {"device_class": SensorDeviceClass.WIND_DIRECTION, "unit": DEGREE}
+        return {"device_class": "wind_direction", "unit": DEGREE}
 
     # Temperature sensors
     if sensor_key_lower.startswith("airtemp") or sensor_key_lower.startswith("dewtemp"):
@@ -134,7 +134,7 @@ def get_sensor_properties(sensor_key: str):
     elif sensor_key_lower.startswith("rainfal"):
         # Accumulators
         state_class = SensorStateClass.TOTAL_INCREASING if "acc" in sensor_key_lower else SensorStateClass.MEASUREMENT
-        properties.update({"device_class": SensorDeviceClass.PRECIPITATION, "unit": UnitOfLength.MILLIMETERS, "state_class": state_class})
+        properties.update({"device_class": "precipitation", "unit": UnitOfLength.MILLIMETERS, "state_class": state_class})
     
     # Wind Speed / Gust / Lull / Run / Cross Wind
     elif (
@@ -145,17 +145,17 @@ def get_sensor_properties(sensor_key: str):
         or "windccw" in sensor_key_lower
     ):
         # Assuming windcw/windccw are also speeds
-        properties.update({"device_class": SensorDeviceClass.WIND_SPEED, "unit": UnitOfSpeed.KNOTS, "state_class": SensorStateClass.MEASUREMENT})
+        properties.update({"device_class": "wind_speed", "unit": UnitOfSpeed.KNOTS, "state_class": SensorStateClass.MEASUREMENT})
 
     # Wind Run specifically (Distance)
     elif "windrun" in sensor_key_lower:
          # Wind run is distance. Assuming km based on typical metric usage if not kn*hr
          # If the sensor output is just a number logic might vary, but DISTANCE is safer than SPEED.
-         properties.update({"device_class": SensorDeviceClass.DISTANCE, "unit": UnitOfLength.KILOMETERS, "state_class": SensorStateClass.TOTAL_INCREASING})
+         properties.update({"device_class": "distance", "unit": UnitOfLength.KILOMETERS, "state_class": SensorStateClass.TOTAL_INCREASING})
 
     # Solar radiation sensors
     elif sensor_key_lower.startswith("solradn"):
-        properties.update({"device_class": SensorDeviceClass.IRRADIANCE, "unit": UnitOfIrradiance.WATTS_PER_SQUARE_METER, "state_class": SensorStateClass.MEASUREMENT})
+        properties.update({"device_class": "irradiance", "unit": UnitOfIrradiance.WATTS_PER_SQUARE_METER, "state_class": SensorStateClass.MEASUREMENT})
     
     # Voltage sensors
     elif sensor_key_lower.startswith("power_v"):
