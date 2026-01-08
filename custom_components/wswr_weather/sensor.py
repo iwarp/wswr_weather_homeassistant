@@ -4,7 +4,11 @@ from typing import Callable
 
 import async_timeout
 import aiohttp
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import (
+    SensorEntity,
+    SensorDeviceClass,
+    SensorStateClass,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -15,6 +19,16 @@ from homeassistant.helpers.update_coordinator import (
 from homeassistant.helpers.typing import (
     ConfigType,
     DiscoveryInfoType
+)
+from homeassistant.const import (
+    UnitOfTemperature,
+    UnitOfPressure,
+    UnitOfSpeed,
+    UnitOfLength,
+    UnitOfIrradiance,
+    UnitOfElectricPotential,
+    PERCENTAGE,
+    DEGREE,
 )
 
 from .const import DOMAIN, CONF_API_URL,  CONF_INTERVAL, SENSOR_NAME_MAPPING
@@ -58,8 +72,11 @@ async def async_setup_entry(
 
     if config_entry.options:
         config.update(config_entry.options)
+    
+    api_url = config.get("api_url", CONF_API_URL)
+    interval = config.get("interval", CONF_INTERVAL)
 
-    coordinator = WeatherStationCoordinator(hass)
+    coordinator = WeatherStationCoordinator(hass, api_url, interval)
 
     await coordinator.async_config_entry_first_refresh()
 
@@ -79,10 +96,27 @@ def get_sensor_properties(sensor_key: str):
     """Infer sensor properties based on the sensor key."""
     sensor_key_lower = sensor_key.lower()
     properties = {}
+    
+    # Prioritize specific suffixes
+    
+    # Wind Gust Time/Direction (avoid matching generic 'windgst' speed first)
+    if "windgst" in sensor_key_lower:
+        if "tim" in sensor_key_lower:
+             # Just a time string, or timestamp if format allows. 
+             # Assuming string for now as per original code implies simple display.
+             return {} 
+        if "dir" in sensor_key_lower:
+             return {"device_class": SensorDeviceClass.WIND_DIRECTION, "unit": DEGREE}
+
+    # Wind Direction (general)
+    if "winddir" in sensor_key_lower or "wnddirm" in sensor_key_lower:
+        return {"device_class": SensorDeviceClass.WIND_DIRECTION, "unit": DEGREE}
+
     # Temperature sensors
     if sensor_key_lower.startswith("airtemp") or sensor_key_lower.startswith("dewtemp"):
-        properties.update({"device_class": "temperature", "unit": "°C"})
-    # Pressure sensors (including various pressure measurements)
+        properties.update({"device_class": SensorDeviceClass.TEMPERATURE, "unit": UnitOfTemperature.CELSIUS, "state_class": SensorStateClass.MEASUREMENT})
+    
+    # Pressure sensors
     elif (
         sensor_key_lower.startswith("pres")
         or sensor_key_lower.startswith("pressen")
@@ -90,51 +124,65 @@ def get_sensor_properties(sensor_key: str):
         or "presqnh" in sensor_key_lower
         or "presmsl" in sensor_key_lower
     ):
-        properties.update({"device_class": "pressure", "unit": "hPa"})
+        properties.update({"device_class": SensorDeviceClass.PRESSURE, "unit": UnitOfPressure.HPA, "state_class": SensorStateClass.MEASUREMENT})
+    
     # Humidity sensors
     elif sensor_key_lower.startswith("relhumd"):
-        properties.update({"device_class": "humidity", "unit": "%"})
-    # Rainfall sensors (explicitly in millimeters)
+        properties.update({"device_class": SensorDeviceClass.HUMIDITY, "unit": PERCENTAGE, "state_class": SensorStateClass.MEASUREMENT})
+    
+    # Rainfall sensors
     elif sensor_key_lower.startswith("rainfal"):
-        properties.update({"unit": "mm", "state_class": "measurement"})
-    # Wind direction sensors (explicitly in degrees)
-    elif sensor_key_lower.startswith("winddir") or "wnddirm" in sensor_key_lower:
-        properties.update({"unit": "°"})
-    # Wind speed, gust, or lull sensors
+        # Accumulators
+        state_class = SensorStateClass.TOTAL_INCREASING if "acc" in sensor_key_lower else SensorStateClass.MEASUREMENT
+        properties.update({"device_class": SensorDeviceClass.PRECIPITATION, "unit": UnitOfLength.MILLIMETERS, "state_class": state_class})
+    
+    # Wind Speed / Gust / Lull / Run / Cross Wind
     elif (
         sensor_key_lower.startswith("windspd")
         or sensor_key_lower.startswith("windgst")
         or sensor_key_lower.startswith("windlul")
+        or "windcw" in sensor_key_lower 
+        or "windccw" in sensor_key_lower
     ):
-        properties.update({"unit": "kn/s", "state_class": "measurement"})
+        # Assuming windcw/windccw are also speeds
+        properties.update({"device_class": SensorDeviceClass.WIND_SPEED, "unit": UnitOfSpeed.KNOTS, "state_class": SensorStateClass.MEASUREMENT})
+
+    # Wind Run specifically (Distance)
+    elif "windrun" in sensor_key_lower:
+         # Wind run is distance. Assuming km based on typical metric usage if not kn*hr
+         # If the sensor output is just a number logic might vary, but DISTANCE is safer than SPEED.
+         properties.update({"device_class": SensorDeviceClass.DISTANCE, "unit": UnitOfLength.KILOMETERS, "state_class": SensorStateClass.TOTAL_INCREASING})
+
     # Solar radiation sensors
     elif sensor_key_lower.startswith("solradn"):
-        properties.update({"unit": "W/m²"})
+        properties.update({"device_class": SensorDeviceClass.IRRADIANCE, "unit": UnitOfIrradiance.WATTS_PER_SQUARE_METER, "state_class": SensorStateClass.MEASUREMENT})
+    
     # Voltage sensors
     elif sensor_key_lower.startswith("power_v"):
-        properties.update({"device_class": "voltage", "unit": "V"})
-    # Fallback: no specific unit/device_class inferred
+        properties.update({"device_class": SensorDeviceClass.VOLTAGE, "unit": UnitOfElectricPotential.VOLT, "state_class": SensorStateClass.MEASUREMENT})
+        
     return properties
 
 class WeatherStationCoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the Weather Station API."""
 
-    def __init__(self, hass: HomeAssistant) -> None:
+    def __init__(self, hass: HomeAssistant, api_url: str, interval: int) -> None:
         """Initialize."""
         super().__init__(
             hass,
             _LOGGER,
             name="WSWR Weather Station API",
-            update_interval=SCAN_INTERVAL,
+            update_interval=timedelta(minutes=interval),
         )
+        self.api_url = api_url
         self.session = aiohttp.ClientSession()
 
     async def _async_update_data(self):
         """Fetch data from API."""
         try:
             async with async_timeout.timeout(10):
-                _LOGGER.debug("Getting Data from:", CONF_API_URL)
-                async with self.session.get(CONF_API_URL) as response:
+                _LOGGER.debug(f"Getting Data from: {self.api_url}")
+                async with self.session.get(self.api_url) as response:
                     if response.status != 200:
                         raise UpdateFailed(f"Error fetching data: {response.status}")
                     data = await response.json()
@@ -164,14 +212,17 @@ class WeatherStationSensor(SensorEntity):
         self._attr_name = friendly_name
         # self._attr_unique_id = f"weather_station_{sensor_key}"
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}-{sensor_key}"
+        
         if "device_class" in properties:
             self._attr_device_class = properties["device_class"]
         if "unit" in properties:
-            self._attr_unit_of_measurement = properties["unit"]
+            self._attr_native_unit_of_measurement = properties["unit"]
+        if "state_class" in properties:
+            self._attr_state_class = properties["state_class"]
 
 
     @property
-    def state(self):
+    def native_value(self):
         """Return the state of the sensor."""
         return self.coordinator.data.get(self._sensor_key)
 
