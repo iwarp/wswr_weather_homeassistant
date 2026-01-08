@@ -71,6 +71,9 @@ async def _create_mock_entry(hass):
         source="user",
         options={},
         entry_id="test_entry_id",
+        discovery_keys={},
+        minor_version=1,
+        unique_id="test_unique_id",
     )
     # We need to add the entry to hass to test options flow
     # In a real test we'd use MockConfigEntry from pytest-homeassistant-custom-component

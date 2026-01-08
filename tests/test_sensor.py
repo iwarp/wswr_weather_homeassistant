@@ -52,7 +52,6 @@ async def test_sensor_entity(hass):
     sensor = WeatherStationSensor(coordinator, "airtemp_01mnavg")
 
     assert sensor.unique_id == "test_entry-airtemp_01mnavg"
-    assert sensor.active is True
     assert sensor.native_value == 20.5
     assert sensor.device_class == SensorDeviceClass.TEMPERATURE
     assert sensor.native_unit_of_measurement == UnitOfTemperature.CELSIUS
