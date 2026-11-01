@@ -180,7 +180,7 @@ class WeatherStationCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         """Fetch data from API."""
         try:
-            async with async_timeout.timeout(10):
+            async with async_timeout.timeout(30):
                 _LOGGER.debug(f"Getting Data from: {self.api_url}")
                 async with self.session.get(self.api_url) as response:
                     if response.status != 200:
