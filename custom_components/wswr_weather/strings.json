@@ -1,0 +1,26 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "WSWR Weather Station",
+        "description": "Configure the WSWR Weather Station API endpoint and polling interval.",
+        "data": {
+          "api_url": "API endpoint URL",
+          "interval": "Update interval (minutes)"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "WSWR Weather Station Options",
+        "data": {
+          "api_url": "API endpoint URL",
+          "interval": "Update interval (minutes)"
+        }
+      }
+    }
+  }
+}
+
