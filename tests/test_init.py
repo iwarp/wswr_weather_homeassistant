@@ -1,6 +1,6 @@
 """Test component setup and unload."""
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -23,9 +23,12 @@ async def test_setup_and_unload_entry(hass):
     )
     entry.add_to_hass(hass)
 
-    with patch(
-        "custom_components.wswr_weather.sensor.WeatherStationCoordinator._async_update_data",
-        return_value={"airtemp_01mnavg": 18.2},
+    with (
+        patch("aiohttp.ClientSession", return_value=MagicMock()),
+        patch(
+            "custom_components.wswr_weather.sensor.WeatherStationCoordinator._async_update_data",
+            return_value={"airtemp_01mnavg": 18.2},
+        ),
     ):
         assert await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
