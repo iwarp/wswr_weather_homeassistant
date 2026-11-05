@@ -1,6 +1,7 @@
 {
   "domain": "wswr_weather",
   "name": "WSWR Weather Station",
+  "categories": ["weather_alerts"],
   "codeowners": ["@iwarp"],
   "config_flow": true,
   "dependencies": [],
