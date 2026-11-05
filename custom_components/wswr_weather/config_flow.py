@@ -17,7 +17,8 @@ DATA_SCHEMA = vol.Schema(
 )
 
 
-class WeatherStationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+# HA isn't installed in the pre-commit mypy env, so the base class is opaque.
+class WeatherStationConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle a config flow for the Weather Station integration."""
 
     VERSION = 1

@@ -5,6 +5,7 @@ from datetime import timedelta
 import logging
 from typing import Any
 
+import aiohttp
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -23,12 +24,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.device_registry import DeviceEntryType
-
-try:
-    from homeassistant.helpers.device_registry import DeviceInfo
-except ImportError:  # pragma: no cover
-    from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
@@ -37,13 +33,6 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .const import CONF_API_URL, CONF_INTERVAL, DOMAIN, SENSOR_NAME_MAPPING
-
-if hasattr(asyncio, "timeout"):
-    _timeout = asyncio.timeout
-else:  # pragma: no cover
-    import async_timeout
-
-    _timeout = async_timeout.timeout
 
 _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(minutes=CONF_INTERVAL)
@@ -55,9 +44,7 @@ EXCLUDED_SENSOR_KEYS = (
     "wvpk2ht_xxmnavg",
 )
 
-WIND_DIRECTION_DEVICE_CLASS = getattr(
-    SensorDeviceClass, "WIND_DIRECTION", "wind_direction"
-)
+WIND_DIRECTION_DEVICE_CLASS = SensorDeviceClass.WIND_DIRECTION
 
 
 async def async_setup_entry(
@@ -229,7 +216,7 @@ class WeatherStationCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from API."""
         try:
-            async with _timeout(30):
+            async with asyncio.timeout(30):
                 _LOGGER.debug("Getting Data from: %s", self.api_url)
                 async with self.session.get(self.api_url) as response:
                     if response.status != 200:
@@ -240,20 +227,16 @@ class WeatherStationCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     if isinstance(data, list) and data:
                         return data[0]
                     return data
-        except Exception as err:
+        except (aiohttp.ClientError, TimeoutError, ValueError) as err:
             raise UpdateFailed(f"Error fetching data: {err}") from err
 
 
-class WeatherStationSensor(
-    CoordinatorEntity[WeatherStationCoordinator], SensorEntity
-):
+class WeatherStationSensor(CoordinatorEntity[WeatherStationCoordinator], SensorEntity):
     """Representation of a sensor for each type of Weather Station API data."""
 
     _attr_has_entity_name = True
 
-    def __init__(
-        self, coordinator: WeatherStationCoordinator, sensor_key: str
-    ) -> None:
+    def __init__(self, coordinator: WeatherStationCoordinator, sensor_key: str) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._sensor_key = sensor_key

@@ -2,6 +2,7 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import aiohttp
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorStateClass,
@@ -194,6 +195,20 @@ async def test_coordinator_update_http_error(hass):
 
     mock_session = MagicMock()
     mock_session.get.return_value.__aenter__.return_value = mock_response
+
+    with patch(
+        "custom_components.wswr_weather.sensor.async_get_clientsession",
+        return_value=mock_session,
+    ):
+        coordinator = WeatherStationCoordinator(hass, "http://test.url", 1)
+        with pytest.raises(UpdateFailed):
+            await coordinator._async_update_data()
+
+
+async def test_coordinator_update_client_error(hass):
+    """Test coordinator raises UpdateFailed on a network error."""
+    mock_session = MagicMock()
+    mock_session.get.side_effect = aiohttp.ClientError("boom")
 
     with patch(
         "custom_components.wswr_weather.sensor.async_get_clientsession",

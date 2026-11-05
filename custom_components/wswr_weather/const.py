@@ -64,5 +64,5 @@ SENSOR_NAME_MAPPING = {
     "windccw_01hrmax": "Wind CCW (1-hr Max)",
     "wndcwm__01mnmax": "Wind CW Mean (1-min Max)",
     "rainfal_24hracc": "Rainfall (24-hr Accum)",
-    "rainfal_07dyacc": "Rainfall (7-day Accum)"
+    "rainfal_07dyacc": "Rainfall (7-day Accum)",
 }

@@ -4,15 +4,12 @@ import logging
 
 from homeassistant import config_entries, core
 from homeassistant.const import Platform
-from homeassistant.helpers import config_validation as cv
 
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
-
-CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 async def async_setup_entry(
@@ -46,9 +43,3 @@ async def async_unload_entry(
         hass.data[DOMAIN].pop(entry.entry_id, None)
 
     return unload_ok
-
-
-async def async_setup(hass: core.HomeAssistant, config: dict) -> bool:
-    """Set up the WSWR Weather Station component."""
-    hass.data.setdefault(DOMAIN, {})
-    return True
