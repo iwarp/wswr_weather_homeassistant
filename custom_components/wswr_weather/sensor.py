@@ -127,18 +127,15 @@ def get_sensor_properties(sensor_key: str) -> dict[str, Any]:
             }
         )
 
-    # Rainfall sensors
+    # Rainfall sensors. The "acc" keys are rolling-window totals (last 1 min,
+    # 1 hr, 24 hr, 7 days) that fall as old readings drop out, so they are
+    # measurements, not ever-increasing meters.
     elif sensor_key_lower.startswith("rainfal"):
-        state_class = (
-            SensorStateClass.TOTAL_INCREASING
-            if "acc" in sensor_key_lower
-            else SensorStateClass.MEASUREMENT
-        )
         properties.update(
             {
                 "device_class": SensorDeviceClass.PRECIPITATION,
                 "unit": UnitOfLength.MILLIMETERS,
-                "state_class": state_class,
+                "state_class": SensorStateClass.MEASUREMENT,
             }
         )
 
@@ -158,13 +155,13 @@ def get_sensor_properties(sensor_key: str) -> dict[str, Any]:
             }
         )
 
-    # Wind Run specifically (Distance)
+    # Wind Run (Distance), also a rolling-window total
     elif "windrun" in sensor_key_lower:
         properties.update(
             {
                 "device_class": SensorDeviceClass.DISTANCE,
                 "unit": UnitOfLength.KILOMETERS,
-                "state_class": SensorStateClass.TOTAL_INCREASING,
+                "state_class": SensorStateClass.MEASUREMENT,
             }
         )
 

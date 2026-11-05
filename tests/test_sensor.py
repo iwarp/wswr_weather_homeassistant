@@ -61,7 +61,15 @@ from custom_components.wswr_weather.sensor import (
             {
                 "device_class": SensorDeviceClass.PRECIPITATION,
                 "unit": UnitOfLength.MILLIMETERS,
-                "state_class": SensorStateClass.TOTAL_INCREASING,
+                "state_class": SensorStateClass.MEASUREMENT,
+            },
+        ),
+        (
+            "rainfal_24hracc",
+            {
+                "device_class": SensorDeviceClass.PRECIPITATION,
+                "unit": UnitOfLength.MILLIMETERS,
+                "state_class": SensorStateClass.MEASUREMENT,
             },
         ),
         (
@@ -105,7 +113,7 @@ from custom_components.wswr_weather.sensor import (
             {
                 "device_class": SensorDeviceClass.DISTANCE,
                 "unit": UnitOfLength.KILOMETERS,
-                "state_class": SensorStateClass.TOTAL_INCREASING,
+                "state_class": SensorStateClass.MEASUREMENT,
             },
         ),
         # Specific cases
